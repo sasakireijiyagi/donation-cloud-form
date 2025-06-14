@@ -12,8 +12,8 @@ st.markdown("""
 ### 📄 ご利用手順（約1〜2分で完了します）
 
 1. 以下のフォームに必要事項を入力してください  
-2. 「Wordファイルを生成する」ボタンを押してください  
-3. ダウンロードされたファイルを、下記の提出先にメール添付で送信してください
+2. 入力内容を確認し、「この内容で生成する」にチェック  
+3. Wordファイルをダウンロードし、下記の提出先にメール添付で送信してください
 
 📬 **提出先メールアドレス：**  
 jbzkeiri1@jimu.kyushu-u.ac.jp（九州大学 人間環境学研究院 経理第一係）
@@ -21,7 +21,6 @@ jbzkeiri1@jimu.kyushu-u.ac.jp（九州大学 人間環境学研究院 経理第�
 ✅ ファイルをダウンロードした後、下記のボタンをクリックするとメール作成画面が開きます（ファイルはご自身で添付してください）。
 """)
 
-# メール作成リンク
 mailto_link = (
     "mailto:jbzkeiri1@jimu.kyushu-u.ac.jp"
     "?subject=九州大学寄附申込書の提出"
@@ -68,31 +67,46 @@ with st.form("donation_form"):
 
     other = st.text_area("その他コメント（任意）")
 
-    submitted = st.form_submit_button("📄 Wordファイルを生成する")
+    submitted = st.form_submit_button("📋 入力内容を確認する")
 
 if submitted:
     formatted_date = today.strftime("%Y年%-m月%-d日") if st.runtime.exists() else today.strftime("%Y年%m月%d日")
-    context = {
-        "date": formatted_date,
-        "name": name,
-        "address1": f"〒{zip_code} {address1}",
-        "address2": address2,
-        "email": email,
-        "amount": f"{amount:,}",
-        "purpose": f"研究者へ［佐々木玲仁／{purpose_detail}］",
-        "condition": condition_detail if condition == "あり" else "なし",
-        "other": other or "なし"
-    }
 
-    doc = DocxTemplate("donate_format.docx")
-    doc.render(context)
-    buffer = BytesIO()
-    doc.save(buffer)
-    buffer.seek(0)
+    st.markdown("### ✅ 入力内容の確認")
+    st.write(f"**申込日：** {formatted_date}")
+    st.write(f"**氏名：** {name}")
+    st.write(f"**住所：** 〒{zip_code} {address1}")
+    st.write(f"**住所2：** {address2}")
+    st.write(f"**メールアドレス：** {email}")
+    st.write(f"**寄附金額：** {amount:,} 円")
+    st.write(f"**寄附目的：** 研究者へ［佐々木玲仁／{purpose_detail}］")
+    st.write(f"**条件：** {'なし' if condition == 'なし' else condition_detail}")
+    st.write(f"**その他コメント：** {other or 'なし'}")
 
-    st.download_button(
-        label="📄 寄附申込書（Word形式）をダウンロード",
-        data=buffer,
-        file_name="寄附申込書.docx",
-        mime="application/vnd.openxmlformats-officedocument.wordprocessingml.document"
-    )
+    confirm = st.checkbox("内容に間違いがないことを確認しました")
+
+    if confirm:
+        context = {
+            "date": formatted_date,
+            "name": name,
+            "address1": f"〒{zip_code} {address1}",
+            "address2": address2,
+            "email": email,
+            "amount": f"{amount:,}",
+            "purpose": f"研究者へ［佐々木玲仁／{purpose_detail}］",
+            "condition": condition_detail if condition == "あり" else "なし",
+            "other": other or "なし"
+        }
+
+        doc = DocxTemplate("donate_format.docx")
+        doc.render(context)
+        buffer = BytesIO()
+        doc.save(buffer)
+        buffer.seek(0)
+
+        st.download_button(
+            label="📄 寄附申込書（Word形式）をダウンロード",
+            data=buffer,
+            file_name="寄附申込書.docx",
+            mime="application/vnd.openxmlformats-officedocument.wordprocessingml.document"
+        )
