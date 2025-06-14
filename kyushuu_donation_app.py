@@ -3,6 +3,16 @@ from datetime import date
 from docxtpl import DocxTemplate
 from io import BytesIO
 
+# セッションステートの初期化
+if "submitted" not in st.session_state:
+    st.session_state.submitted = False
+
+if "confirmed" not in st.session_state:
+    st.session_state.confirmed = False
+
+if "downloaded" not in st.session_state:
+    st.session_state.downloaded = False
+
 st.set_page_config(page_title="九州大学 寄附申込フォーム", layout="centered")
 st.title("🐐 九州大学 寄附申込フォーム（佐々木玲仁 研究支援）")
 
@@ -16,10 +26,7 @@ st.markdown("""
 3. Wordファイルをダウンロードしたら、メール作成リンクから提出へ
 """)
 
-# セッションステート初期化
-if "downloaded" not in st.session_state:
-    st.session_state.downloaded = False
-
+# フォーム本体
 with st.form("donation_form"):
     today = st.date_input("申込日", date.today())
     name = st.text_input("寄附者氏名")
@@ -62,6 +69,11 @@ with st.form("donation_form"):
     submitted = st.form_submit_button("📋 入力内容を確認する")
 
 if submitted:
+    st.session_state.submitted = True
+    st.session_state.confirmed = False
+    st.session_state.downloaded = False
+
+if st.session_state.submitted:
     formatted_date = today.strftime("%Y年%-m月%-d日") if st.runtime.exists() else today.strftime("%Y年%m月%d日")
 
     st.markdown("### ✅ 入力内容の確認")
@@ -75,36 +87,36 @@ if submitted:
     st.write(f"**条件：** {'なし' if condition == 'なし' else condition_detail}")
     st.write(f"**その他コメント：** {other or 'なし'}")
 
-    confirm = st.checkbox("内容に間違いがないことを確認しました")
+    if st.checkbox("内容に間違いがないことを確認しました", key="confirmation"):
+        st.session_state.confirmed = True
 
-    if confirm:
-        context = {
-            "date": formatted_date,
-            "name": name,
-            "address1": f"〒{zip_code} {address1}",
-            "address2": address2,
-            "email": email,
-            "amount": f"{amount:,}",
-            "purpose": f"研究者へ［佐々木玲仁／{purpose_detail}］",
-            "condition": condition_detail if condition == "あり" else "なし",
-            "other": other or "なし"
-        }
+if st.session_state.confirmed:
+    context = {
+        "date": formatted_date,
+        "name": name,
+        "address1": f"〒{zip_code} {address1}",
+        "address2": address2,
+        "email": email,
+        "amount": f"{amount:,}",
+        "purpose": f"研究者へ［佐々木玲仁／{purpose_detail}］",
+        "condition": condition_detail if condition == "あり" else "なし",
+        "other": other or "なし"
+    }
 
-        doc = DocxTemplate("donate_format.docx")
-        doc.render(context)
-        buffer = BytesIO()
-        doc.save(buffer)
-        buffer.seek(0)
+    doc = DocxTemplate("donate_format.docx")
+    doc.render(context)
+    buffer = BytesIO()
+    doc.save(buffer)
+    buffer.seek(0)
 
-        if st.download_button(
-            label="📄 寄附申込書（Word形式）をダウンロード",
-            data=buffer,
-            file_name="寄附申込書.docx",
-            mime="application/vnd.openxmlformats-officedocument.wordprocessingml.document"
-        ):
-            st.session_state.downloaded = True
+    if st.download_button(
+        label="📄 寄附申込書（Word形式）をダウンロード",
+        data=buffer,
+        file_name="寄附申込書.docx",
+        mime="application/vnd.openxmlformats-officedocument.wordprocessingml.document"
+    ):
+        st.session_state.downloaded = True
 
-# ✅ ダウンロード後にのみ表示されるメール案内
 if st.session_state.downloaded:
     st.markdown("""
 ---
