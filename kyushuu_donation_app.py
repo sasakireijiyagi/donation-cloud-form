@@ -13,8 +13,12 @@ st.markdown("""
 
 1. 以下のフォームに必要事項を入力してください  
 2. 入力内容を確認し、「この内容で生成する」にチェック  
-3. Wordファイルをダウンロードし、下記の提出先にメール添付で送信してください
+3. Wordファイルをダウンロードしたら、メール作成リンクから提出へ
 """)
+
+# セッションステート初期化
+if "downloaded" not in st.session_state:
+    st.session_state.downloaded = False
 
 with st.form("donation_form"):
     today = st.date_input("申込日", date.today())
@@ -92,14 +96,17 @@ if submitted:
         doc.save(buffer)
         buffer.seek(0)
 
-        st.download_button(
+        if st.download_button(
             label="📄 寄附申込書（Word形式）をダウンロード",
             data=buffer,
             file_name="寄附申込書.docx",
             mime="application/vnd.openxmlformats-officedocument.wordprocessingml.document"
-        )
+        ):
+            st.session_state.downloaded = True
 
-        st.markdown("""
+# ✅ ダウンロード後にのみ表示されるメール案内
+if st.session_state.downloaded:
+    st.markdown("""
 ---
 
 📬 **提出先メールアドレス：**  
