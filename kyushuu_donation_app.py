@@ -17,11 +17,22 @@ st.markdown("""
 
 📬 **提出先メールアドレス：**  
 jbzkeiri1@jimu.kyushu-u.ac.jp（九州大学 人間環境学研究院 経理第一係）
+
+✅ ファイルをダウンロードした後、下記のボタンをクリックするとメール作成画面が開きます（ファイルはご自身で添付してください）。
 """)
+
+# メール作成リンク
+mailto_link = (
+    "mailto:jbzkeiri1@jimu.kyushu-u.ac.jp"
+    "?subject=九州大学寄附申込書の提出"
+    "&body=添付ファイルにて寄附申込書を提出いたします。"
+)
+st.markdown(f"[📧 メールを作成する]({mailto_link})", unsafe_allow_html=True)
 
 with st.form("donation_form"):
     today = st.date_input("申込日", date.today())
     name = st.text_input("寄附者氏名")
+    zip_code = st.text_input("郵便番号（ハイフンなし 7桁）", max_chars=7, help="例：8190395")
     address1 = st.text_input("住所1（例：福岡県福岡市西区元岡744）")
     address2 = st.text_input("住所2（例：マンション名・部屋番号など）")
     email = st.text_input("メールアドレス（控えを送付します）")
@@ -64,7 +75,7 @@ if submitted:
     context = {
         "date": formatted_date,
         "name": name,
-        "address1": address1,
+        "address1": f"〒{zip_code} {address1}",
         "address2": address2,
         "email": email,
         "amount": f"{amount:,}",
@@ -73,7 +84,6 @@ if submitted:
         "other": other or "なし"
     }
 
-    # Word差し込み → バッファ保存
     doc = DocxTemplate("donate_format.docx")
     doc.render(context)
     buffer = BytesIO()
