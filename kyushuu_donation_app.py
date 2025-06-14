@@ -22,7 +22,7 @@ jbzkeiri1@jimu.kyushu-u.ac.jp（九州大学 人間環境学研究院 経理第�
 with st.form("donation_form"):
     today = st.date_input("申込日", date.today())
     name = st.text_input("寄附者氏名")
-    address1 = st.text_input("住所1（例：福岡県福岡市中央区天神1-1-1）")
+    address1 = st.text_input("住所1（例：福岡県福岡市西区元岡744）")
     address2 = st.text_input("住所2（例：マンション名・部屋番号など）")
     email = st.text_input("メールアドレス（控えを送付します）")
 
