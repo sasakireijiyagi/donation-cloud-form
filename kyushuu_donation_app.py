@@ -14,19 +14,7 @@ st.markdown("""
 1. 以下のフォームに必要事項を入力してください  
 2. 入力内容を確認し、「この内容で生成する」にチェック  
 3. Wordファイルをダウンロードし、下記の提出先にメール添付で送信してください
-
-📬 **提出先メールアドレス：**  
-jbzkeiri1@jimu.kyushu-u.ac.jp（九州大学 人間環境学研究院 経理第一係）
-
-✅ ファイルをダウンロードした後、下記のボタンをクリックするとメール作成画面が開きます（ファイルはご自身で添付してください）。
 """)
-
-mailto_link = (
-    "mailto:jbzkeiri1@jimu.kyushu-u.ac.jp"
-    "?subject=九州大学寄附申込書の提出"
-    "&body=添付ファイルにて寄附申込書を提出いたします。"
-)
-st.markdown(f"[📧 メールを作成する]({mailto_link})", unsafe_allow_html=True)
 
 with st.form("donation_form"):
     today = st.date_input("申込日", date.today())
@@ -110,3 +98,14 @@ if submitted:
             file_name="寄附申込書.docx",
             mime="application/vnd.openxmlformats-officedocument.wordprocessingml.document"
         )
+
+        st.markdown("""
+---
+
+📬 **提出先メールアドレス：**  
+jbzkeiri1@jimu.kyushu-u.ac.jp（九州大学 人間環境学研究院 経理第一係）
+
+✅ ファイルをダウンロードした後、下記のボタンをクリックするとメール作成画面が開きます（ファイルはご自身で添付してください）。
+
+📧 [メールを作成する](mailto:jbzkeiri1@jimu.kyushu-u.ac.jp?subject=九州大学寄附申込書の提出&body=添付ファイルにて寄附申込書を提出いたします。)
+""", unsafe_allow_html=True)
