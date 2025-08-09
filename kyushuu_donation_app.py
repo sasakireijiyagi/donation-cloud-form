@@ -4,7 +4,7 @@ from docxtpl import DocxTemplate
 from io import BytesIO
 import urllib.parse as up  # mailto のエンコード用
 
-# セッションステートの初期化
+# ---- セッションステート初期化 ----
 if "submitted" not in st.session_state:
     st.session_state.submitted = False
 if "confirmed" not in st.session_state:
@@ -18,14 +18,15 @@ st.title("🐐 九州大学 寄附申込フォーム（佐々木玲仁 研究支
 st.markdown("以下のフォームに入力すると、大学提出用の寄附申込書（Wordファイル）が自動生成されます。")
 
 st.markdown("""
-### 📄 ご利用手順（約1〜2分で完了します）
+### 📄 ご利用手順（約1〜2分で完了）
 
-1. 以下のフォームに必要事項を入力してください  
+1. 以下のフォームに必要事項を入力  
 2. 入力内容を確認し、「この内容で生成する」にチェック  
-3. Wordファイルをダウンロードしたら、**「メールを作成する」リンク**から送信（添付はご自身で）
+3. **Wordファイルをダウンロード**  
+4. ダウンロード後に出る **「メールを作成する」ボタン** から送信（添付はご自身で）
 """)
 
-# フォーム本体
+# ---- フォーム本体 ----
 with st.form("donation_form"):
     today = st.date_input("申込日", date.today())
     name = st.text_input("寄附者氏名")
@@ -44,29 +45,21 @@ with st.form("donation_form"):
 
     st.caption("💡 入金は銀行振込となります。振込手数料は寄附者のご負担となります。")
 
-    if amount_option != "金額は自分で入力する":
-        amount = int(amount_option.replace(",", "").split()[0])
-    else:
-        amount = int(custom_amount)
+    amount = int(amount_option.replace(",", "").split()[0]) if amount_option != "金額は自分で入力する" else int(custom_amount)
 
     st.markdown("### 寄附目的")
     purpose_detail = st.radio(
         "寄附先の選択（佐々木玲仁 研究関連）",
-        [
-            "研究全般",
-            "糸島市子どもの居場所プロジェクト"
-        ],
+        ["研究全般", "糸島市子どもの居場所プロジェクト"],
         index=0
     )
 
     condition = st.radio("寄附の条件", ["なし", "あり"])
-    condition_detail = ""
-    if condition == "あり":
-        condition_detail = st.text_input("条件の内容")
+    condition_detail = st.text_input("条件の内容") if condition == "あり" else ""
 
     other = st.text_area("その他コメント（任意）")
 
-    # ▼ 個人情報の取扱い
+    # ▼ 個人情報の取扱い（明示表示）
     st.markdown("### 個人情報の取扱い")
     st.markdown(
         "入力いただいた個人情報は、**今回のご寄附に関する連絡・手続き**の目的にのみ使用します。"
@@ -80,6 +73,7 @@ if submitted:
     st.session_state.confirmed = False
     st.session_state.downloaded = False
 
+# ---- 確認画面 ----
 if st.session_state.submitted:
     try:
         formatted_date = today.strftime("%Y年%-m月%-d日")
@@ -100,6 +94,7 @@ if st.session_state.submitted:
     if st.checkbox("内容に間違いがないことを確認しました", key="confirmation"):
         st.session_state.confirmed = True
 
+# ---- 生成＆ダウンロード ----
 if st.session_state.confirmed:
     context = {
         "date": formatted_date,
@@ -110,7 +105,7 @@ if st.session_state.confirmed:
         "amount": f"{amount:,}",
         "purpose": f"研究者へ［佐々木玲仁／{purpose_detail}］",
         "condition": condition_detail if condition == "あり" else "なし",
-        "other": other or "なし"
+        "other": other or "なし",
     }
 
     doc = DocxTemplate("donate_format.docx")
@@ -119,22 +114,23 @@ if st.session_state.confirmed:
     doc.save(buffer)
     buffer.seek(0)
 
-    st.success("✅ 寄附申込書が生成されました。内容を確認後、ダウンロード・送信してください。")
+    st.success("✅ 寄附申込書が生成されました。内容を確認後、まずはダウンロードしてください。")
 
     downloaded = st.download_button(
         label="📄 寄附申込書（Word形式）をダウンロード",
         data=buffer,
         file_name="寄附申込書.docx",
-        mime="application/vnd.openxmlformats-officedocument.wordprocessingml.document"
+        mime="application/vnd.openxmlformats-officedocument.wordprocessingml.document",
     )
     if downloaded:
         st.session_state.downloaded = True
 
-    # ---- mailto リンク作成 ----
-    to_addr = "jbzkeiri1@jimu.kyushu-u.ac.jp"
-    subject = "九州大学寄附申込書の提出"
+    # ---- ダウンロード後だけ「メールを作成する」ボタンを表示 ----
+    if st.session_state.downloaded:
+        to_addr = "jbzkeiri1@jimu.kyushu-u.ac.jp"
+        subject = "九州大学寄附申込書の提出"
 
-    body_text = f"""九州大学人間環境学研究院 経理第一係 御中
+        body_text = f"""九州大学人間環境学研究院 経理第一係 御中
 
 お世話になっております。
 寄附申込フォームで作成した寄附申込書を提出いたします。
@@ -153,18 +149,24 @@ if st.session_state.confirmed:
 sasaki@hes.kyushu-u.ac.jp
 """
 
-    mailto = (
-        f"mailto:{to_addr}"
-        f"?subject={up.quote(subject)}"
-        f"&body={up.quote(body_text)}"
-    )
+        # 改行を CRLF (%0D%0A) に置換してクライアント互換性を高める
+        encoded_subject = up.quote(subject)
+        encoded_body = up.quote(body_text).replace("%0A", "%0D%0A")
+        mailto = f"mailto:{to_addr}?subject={encoded_subject}&body={encoded_body}"
 
-    st.markdown("---")
-    st.markdown("📬 **提出先メールアドレス**：jbzkeiri1@jimu.kyushu-u.ac.jp（九州大学 人間環境学研究院 経理第一係）")
-
-    if st.session_state.downloaded:
+        st.markdown("---")
+        # アンカーをボタン風に装飾（Streamlitの標準ボタンは外部リンクに使えないため）
         st.markdown(
-            f'<a href="{mailto}" target="_self">📧 メールを作成する（添付はご自身で）</a>',
-            unsafe_allow_html=True
+            f'''
+            <a href="{mailto}" target="_self"
+               style="
+                 display:inline-block;padding:0.65rem 1rem;border-radius:0.5rem;
+                 background:#0f62fe;color:#fff;text-decoration:none;
+                 font-weight:600;letter-spacing:.01em;
+               ">
+               📧 メールを作成する（添付はご自身でお願いします）
+            </a>
+            ''',
+            unsafe_allow_html=True,
         )
-        st.caption("※ クリックでお使いのメーラが開きます。作成した Word ファイルを添付して送信してください。")
+        st.caption("※ クリックでお使いのメーラが開きます。先ほどダウンロードした Word ファイルを添付して送信してください。")
