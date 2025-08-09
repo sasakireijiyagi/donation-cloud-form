@@ -2,14 +2,13 @@ import streamlit as st
 from datetime import date
 from docxtpl import DocxTemplate
 from io import BytesIO
+import urllib.parse as up  # mailto のエンコード用
 
 # セッションステートの初期化
 if "submitted" not in st.session_state:
     st.session_state.submitted = False
-
 if "confirmed" not in st.session_state:
     st.session_state.confirmed = False
-
 if "downloaded" not in st.session_state:
     st.session_state.downloaded = False
 
@@ -23,7 +22,7 @@ st.markdown("""
 
 1. 以下のフォームに必要事項を入力してください  
 2. 入力内容を確認し、「この内容で生成する」にチェック  
-3. Wordファイルをダウンロードしたら、メール作成リンクから提出へ
+3. Wordファイルをダウンロードしたら、**「メールを作成する」リンク**から送信（添付はご自身で）
 """)
 
 # フォーム本体
@@ -52,12 +51,12 @@ with st.form("donation_form"):
 
     st.markdown("### 寄附目的")
     purpose_detail = st.radio(
-    "寄附先の選択（佐々木玲仁 研究関連）",
-    [
-        "研究全般",
-        "糸島市子どもの居場所プロジェクト"
-    ],
-    index=0  # ← デフォルトで「研究全般」にチェックが入る
+        "寄附先の選択（佐々木玲仁 研究関連）",
+        [
+            "研究全般",
+            "糸島市子どもの居場所プロジェクト"
+        ],
+        index=0
     )
 
     condition = st.radio("寄附の条件", ["なし", "あり"])
@@ -67,6 +66,13 @@ with st.form("donation_form"):
 
     other = st.text_area("その他コメント（任意）")
 
+    # ▼ 個人情報の取扱い：フォーム内に明示表示
+    st.markdown("### 個人情報の取扱い")
+    st.markdown(
+        "入力いただいた個人情報は、**今回のご寄附に関する連絡・手続き**の目的にのみ使用します。"
+        "大学の規程に基づき適切に管理し、**研究・教育・広報その他の目的で第三者に提供・使用することはありません**。"
+    )
+
     submitted = st.form_submit_button("📋 入力内容を確認する")
 
 if submitted:
@@ -75,7 +81,11 @@ if submitted:
     st.session_state.downloaded = False
 
 if st.session_state.submitted:
-    formatted_date = today.strftime("%Y年%-m月%-d日") if st.runtime.exists() else today.strftime("%Y年%m月%d日")
+    # 環境差異に配慮した日付フォーマット
+    try:
+        formatted_date = today.strftime("%Y年%-m月%-d日")
+    except Exception:
+        formatted_date = today.strftime("%Y年%m月%d日")
 
     st.markdown("### ✅ 入力内容の確認")
     st.write(f"**申込日：** {formatted_date}")
@@ -92,6 +102,7 @@ if st.session_state.submitted:
         st.session_state.confirmed = True
 
 if st.session_state.confirmed:
+    # Word 差し込み用コンテキスト
     context = {
         "date": formatted_date,
         "name": name,
@@ -104,28 +115,61 @@ if st.session_state.confirmed:
         "other": other or "なし"
     }
 
+    # Word 生成
     doc = DocxTemplate("donate_format.docx")
     doc.render(context)
     buffer = BytesIO()
     doc.save(buffer)
     buffer.seek(0)
 
-    if st.download_button(
+    st.success("✅ 寄附申込書が生成されました。内容を確認後、ダウンロード・送信してください。")
+
+    # ダウンロードボタン
+    downloaded = st.download_button(
         label="📄 寄附申込書（Word形式）をダウンロード",
         data=buffer,
         file_name="寄附申込書.docx",
         mime="application/vnd.openxmlformats-officedocument.wordprocessingml.document"
-    ):
+    )
+    if downloaded:
         st.session_state.downloaded = True
 
-if st.session_state.downloaded:
-    st.markdown("""
----
+    # mailto リンク（件名・本文を日本語対応でURLエンコード）
+    to_addr = "jbzkeiri1@jimu.kyushu-u.ac.jp"
+    subject = "九州大学寄附申込書の提出"
 
-📬 **提出先メールアドレス：**  
-jbzkeiri1@jimu.kyushu-u.ac.jp（九州大学 人間環境学研究院 経理第一係）
+    body_text = f"""九州大学人間環境学研究院 経理第一係 御中
 
-✅ ファイルをダウンロードした後、下記のボタンをクリックするとメール作成画面が開きます（ファイルはご自身で添付してください）。
+お世話になっております。
+寄附申込フォームで作成した寄附申込書を提出いたします。
+添付ファイルをご確認いただき、所定の手続きをお願いいたします。
 
-📧 [メールを作成する](mailto:jbzkeiri1@jimu.kyushu-u.ac.jp?subject=九州大学寄附申込書の提出&body=添付ファイルにて寄附申込書を提出いたします。)
-""", unsafe_allow_html=True)
+【寄附者情報】
+氏名：{name}
+寄附金額：{amount:,}円
+寄附目的：研究者へ［佐々木玲仁／{purpose_detail}］
+申込日：{formatted_date}
+
+—
+本メールは寄附申込者のメール環境から送信されています。
+ご不明点がございましたら、下記までご連絡ください。
+佐々木 玲仁（人間環境学研究院）
+sasaki@hes.kyushu-u.ac.jp
+"""
+
+    mailto = (
+        f"mailto:{to_addr}"
+        f"?subject={up.quote(subject)}"
+        f"&body={up.quote(body_text)}"
+    )
+
+    st.markdown("---")
+    st.markdown("📬 **提出先メールアドレス**：jbzkeiri1@jimu.kyushu-u.ac.jp（九州大学 人間環境学研究院 経理第一係）")
+
+    # ダウンロード後に表示（常時表示したいなら if を外す）
+    if st.session_state.downloaded:
+        st.markdown(
+            f'<a href="{mailto}" target="_self">📧 メールを作成する（添付はご自身で）</a>',
+            unsafe_allow_html=True
+        )
+        st.caption("※ クリックでお使いのメーラが開きます。作成した Word ファイルを添付して送信してください。")
