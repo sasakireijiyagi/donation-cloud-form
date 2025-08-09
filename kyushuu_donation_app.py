@@ -13,13 +13,13 @@ load_dotenv()
 EMAIL_ADDRESS = os.getenv("GMAIL_USER")
 EMAIL_PASSWORD = os.getenv("GMAIL_APP_PASSWORD")
 
-# メール送信関数（複数CC対応）
-def send_email_with_attachment(to_address, cc_addresses, subject, body, attachment_data, filename):
+# メール送信関数
+def send_email_with_attachment(to_address, cc_address, subject, body, attachment_data, filename):
     msg = EmailMessage()
     msg["Subject"] = subject
     msg["From"] = EMAIL_ADDRESS
     msg["To"] = to_address
-    msg["Cc"] = ", ".join(cc_addresses)
+    msg["Cc"] = cc_address
     msg.set_content(body)
 
     msg.add_attachment(
@@ -29,11 +29,9 @@ def send_email_with_attachment(to_address, cc_addresses, subject, body, attachme
         filename=filename
     )
 
-    all_recipients = [to_address] + cc_addresses
-
     with smtplib.SMTP_SSL("smtp.gmail.com", 465) as smtp:
         smtp.login(EMAIL_ADDRESS, EMAIL_PASSWORD)
-        smtp.send_message(msg, to_addrs=all_recipients)
+        smtp.send_message(msg)
 
 # セッションステートの初期化
 if "submitted" not in st.session_state:
@@ -175,7 +173,7 @@ if st.session_state.confirmed:
 
             send_email_with_attachment(
                 to_address="jbzkeiri1@jimu.kyushu-u.ac.jp",
-                cc_addresses=[email, "sasaki@hes.kyushu-u.ac.jp"],
+                cc_address=email,
                 subject="【自動送信】九州大学寄附申込書の提出",
                 body=body,
                 attachment_data=st.session_state.buffer.getvalue(),
