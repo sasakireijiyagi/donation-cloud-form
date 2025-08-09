@@ -66,7 +66,7 @@ with st.form("donation_form"):
 
     other = st.text_area("その他コメント（任意）")
 
-    # ▼ 個人情報の取扱い：フォーム内に明示表示
+    # ▼ 個人情報の取扱い
     st.markdown("### 個人情報の取扱い")
     st.markdown(
         "入力いただいた個人情報は、**今回のご寄附に関する連絡・手続き**の目的にのみ使用します。"
@@ -81,7 +81,6 @@ if submitted:
     st.session_state.downloaded = False
 
 if st.session_state.submitted:
-    # 環境差異に配慮した日付フォーマット
     try:
         formatted_date = today.strftime("%Y年%-m月%-d日")
     except Exception:
@@ -102,7 +101,6 @@ if st.session_state.submitted:
         st.session_state.confirmed = True
 
 if st.session_state.confirmed:
-    # Word 差し込み用コンテキスト
     context = {
         "date": formatted_date,
         "name": name,
@@ -115,7 +113,6 @@ if st.session_state.confirmed:
         "other": other or "なし"
     }
 
-    # Word 生成
     doc = DocxTemplate("donate_format.docx")
     doc.render(context)
     buffer = BytesIO()
@@ -124,7 +121,6 @@ if st.session_state.confirmed:
 
     st.success("✅ 寄附申込書が生成されました。内容を確認後、ダウンロード・送信してください。")
 
-    # ダウンロードボタン
     downloaded = st.download_button(
         label="📄 寄附申込書（Word形式）をダウンロード",
         data=buffer,
@@ -134,7 +130,7 @@ if st.session_state.confirmed:
     if downloaded:
         st.session_state.downloaded = True
 
-    # mailto リンク（件名・本文を日本語対応でURLエンコード）
+    # ---- mailto リンク作成 ----
     to_addr = "jbzkeiri1@jimu.kyushu-u.ac.jp"
     subject = "九州大学寄附申込書の提出"
 
@@ -166,7 +162,6 @@ sasaki@hes.kyushu-u.ac.jp
     st.markdown("---")
     st.markdown("📬 **提出先メールアドレス**：jbzkeiri1@jimu.kyushu-u.ac.jp（九州大学 人間環境学研究院 経理第一係）")
 
-    # ダウンロード後に表示（常時表示したいなら if を外す）
     if st.session_state.downloaded:
         st.markdown(
             f'<a href="{mailto}" target="_self">📧 メールを作成する（添付はご自身で）</a>',
