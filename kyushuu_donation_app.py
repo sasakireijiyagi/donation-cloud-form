@@ -28,17 +28,27 @@ st.markdown("""
 
 # ---- フォーム本体 ----
 with st.form("donation_form"):
-    today = st.date_input("申込日", date.today())
-    name = st.text_input("寄附者氏名")
-    zip_code = st.text_input("郵便番号（ハイフンなし 7桁）", max_chars=7, help="例：8190395")
-    address1 = st.text_input("住所1（例：福岡県福岡市西区元岡744）")
-    address2 = st.text_input("住所2（例：マンション名・部屋番号など）")
-    email = st.text_input("メールアドレス（控えを送付します）")
+    def req(label):
+        st.markdown(f"{label} <span style='color:red;'>*</span>", unsafe_allow_html=True)
+
+    st.markdown("<small><span style='color:red;'>*</span> は必須項目です</small>", unsafe_allow_html=True)
+    req("申込日")
+    today = st.date_input("申込日", date.today(), label_visibility="collapsed")
+    req("寄附者氏名")
+    name = st.text_input("寄附者氏名", label_visibility="collapsed")
+    req("郵便番号（例：8190395）")
+    zip_code = st.text_input("郵便番号", max_chars=7, label_visibility="collapsed")
+    req("住所1（例：福岡県福岡市西区元岡744）")
+    address1 = st.text_input("住所1", label_visibility="collapsed")
+    st.markdown("住所2（例：マンション名・部屋番号など）")
+    address2 = st.text_input("住所2", label_visibility="collapsed")
+    req("メールアドレス（控えを送付します）")
+    email = st.text_input("メールアドレス", label_visibility="collapsed")
 
     st.markdown("### 寄附金額")
     amount_option = st.radio(
         "金額を選んでください",
-        ["1,000 円", "3,000 円", "5,000 円", "10,000 円", "金額は自分で入力する"],
+        ["1,000 円", "3,000 円", "5,000 円", "10,000 円", "50,000 円", "100,000 円", "金額は自分で入力する"],
         index=1
     )
     custom_amount = st.number_input("自由入力欄（円）", min_value=1, step=1000, value=3000)
@@ -69,9 +79,21 @@ with st.form("donation_form"):
     submitted = st.form_submit_button("📋 入力内容を確認する")
 
 if submitted:
-    st.session_state.submitted = True
-    st.session_state.confirmed = False
-    st.session_state.downloaded = False
+    errors = []
+    if not name.strip():
+        errors.append("寄附者氏名")
+    if not zip_code.strip():
+        errors.append("郵便番号")
+    if not address1.strip():
+        errors.append("住所1")
+    if not email.strip():
+        errors.append("メールアドレス")
+    if errors:
+        st.error(f"以下の必須項目が入力されていません：{' / '.join(errors)}")
+    else:
+        st.session_state.submitted = True
+        st.session_state.confirmed = False
+        st.session_state.downloaded = False
 
 # ---- 確認画面 ----
 if st.session_state.submitted:
