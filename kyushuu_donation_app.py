@@ -11,8 +11,79 @@ if "confirmed" not in st.session_state:
     st.session_state.confirmed = False
 if "downloaded" not in st.session_state:
     st.session_state.downloaded = False
+if "lang" not in st.session_state:
+    st.session_state.lang = "ja"
 
 st.set_page_config(page_title="九州大学 寄附申込フォーム", layout="centered")
+
+# ---- 言語切り替え ----
+col_title, col_lang = st.columns([8, 1])
+with col_lang:
+    if st.button("EN" if st.session_state.lang == "ja" else "JA"):
+        st.session_state.lang = "en" if st.session_state.lang == "ja" else "ja"
+        st.rerun()
+
+lang = st.session_state.lang
+
+# ---- 英語モード：案内のみ表示 ----
+if lang == "en":
+    st.title("🐐 Donation for Reiji Sasaki (Kyushu University)")
+    st.markdown("""
+## For International Donors
+
+Thank you for your interest in supporting my research.
+
+Unfortunately, **Kyushu University's donation system currently supports domestic (Japan) donors only.**
+International bank transfers and credit card payments are not yet available through the official system.
+
+---
+
+### How to inquire
+
+If you are outside Japan and wish to donate, please contact the university's accounting office directly by email.
+We will do our best to assist you.
+
+**Send an email to the Accounting Division:**
+""")
+
+    import urllib.parse as _up
+    _to   = "jbzkeiri1@jimu.kyushu-u.ac.jp"
+    _subj = "Donation request for Reiji Sasaki (Kyushu University)"
+    _body = (
+        "Dear Accounting Division,\n\n"
+        "I would like to make a donation in support of the research activities "
+        "of Reiji Sasaki (Graduate School of Human-Environment Studies, Clinical Psychology).\n\n"
+        "Could you please provide me with the necessary information and procedures "
+        "to complete the donation?\n\n"
+        "Thank you very much.\n\n"
+        "---\n"
+        "Name:\n"
+        "Email:\n"
+        "Donation amount (JPY):\n"
+    )
+    _mailto = f"mailto:{_to}?subject={_up.quote(_subj)}&body={_up.quote(_body).replace('%0A','%0D%0A')}"
+    st.markdown(
+        f'''<a href="{_mailto}" style="
+            display:inline-block;padding:0.65rem 1.2rem;border-radius:0.5rem;
+            background:#0f62fe;color:#fff;text-decoration:none;
+            font-weight:600;font-size:1rem;">
+            📧 Contact Accounting Division
+        </a>''',
+        unsafe_allow_html=True,
+    )
+    st.markdown("""
+---
+*This will open your email client with a pre-filled message.
+Please send it to start the donation process.*
+
+**Reiji Sasaki**
+Graduate School of Human-Environment Studies, Kyushu University
+Clinical Psychology
+sasaki@hes.kyushu-u.ac.jp
+""")
+    st.stop()
+
+# ---- 日本語モード（通常フォーム）----
 st.title("🐐 九州大学 寄附申込フォーム（佐々木玲仁 研究支援）")
 
 st.markdown("以下のフォームに入力すると、大学提出用の寄附申込書（Wordファイル）が自動生成されます。")
